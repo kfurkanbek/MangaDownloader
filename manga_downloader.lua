@@ -16,14 +16,14 @@ end
 -- Function to download an image using curl
 local function download_image(url, save_path)
     local command = string.format("curl -s -L '%s' -o '%s'", url, save_path)
-    return os.execute(command)  -- Returns true if curl exits successfully
+    return os.execute(command) -- Returns true if curl exits successfully
 end
 
 -- Function to convert a list of PNG images into a PDF
 local function pdf_convert(png_list, pdf_name)
     local command = string.format("magick %s %s", png_list, pdf_name)
     print(command)
-    return os.execute(command)  -- Returns true if the conversion is successful
+    return os.execute(command) -- Returns true if the conversion is successful
 end
 
 -- Function to check if a file exists
@@ -41,6 +41,11 @@ local function create_directory(path)
     os.execute("mkdir -p " .. path)
 end
 
+-- Function to remove a directory
+local function remove_directory(path)
+    os.execute("rm -rf " .. path)
+end
+
 -- Function to log messages to a file and print to console
 local function log_message(output_buffer, message)
     table.insert(output_buffer, message)
@@ -48,15 +53,14 @@ local function log_message(output_buffer, message)
 end
 
 -- Read the JSON file containing manga data
-local content
 local file = io.open("manga.json", "r")
-if file then
-    content = file:read("*a")
-    file:close()
-else
+if not file then
     print("Error: JSON file not found!")
     return
 end
+
+local content = file:read("*a")
+file:close()
 
 -- Decode the JSON into a Lua table
 local data, _, err = json.decode(content)
@@ -64,6 +68,10 @@ if err then
     print("Error decoding JSON:", err)
     return
 end
+
+-- Check for command-line arguments
+local is_clean = arg[1] == "clean"
+local is_manga = arg[1] == "manga"
 
 -- Output buffer to store log data
 local output_buffer = {}
@@ -98,6 +106,7 @@ else
         log_message(output_buffer, " - Cover Failed to download: " .. cover_link)
     end
 end
+
 log_message(output_buffer, "")
 
 local chapter_count = 0
@@ -106,72 +115,89 @@ local pdf_list = ""
 -- Loop through each chapter
 for chapter_number, chapter in pairs(data.chapters) do
     local chapter_dir = base_dir .. "/chapter_" .. chapter_number
-    create_directory(chapter_dir)
+    local pdf_filename = chapter_dir .. ".pdf"
 
-    -- Store chapter details
-    log_message(output_buffer, "Chapter " .. chapter_number .. ":")
-    log_message(output_buffer, "Title: " .. chapter.title)
-    log_message(output_buffer, "Volume: " .. chapter.volume)
-    log_message(output_buffer, "Last Updated: " .. os.date("%Y-%m-%d %H:%M:%S", tonumber(chapter.last_updated)))
-    log_message(output_buffer, "Groups:")
-
-    local link_count = 1
-    local png_list = ""
-    if chapter_number == "1" then
-        png_list = cover_filename
-    end
-
-    -- Process each image link in the chapter
-    for group, links in pairs(chapter.groups) do
-        for _, link in ipairs(links) do
-            local fixed_link = convert_link(link)
-            local link_filename = chapter_dir .. "/link_" .. link_count .. ".png"
-
-            if file_exists(link_filename) then
-                log_message(output_buffer, " - Exists: " .. link_filename)
-            else
-                local success = download_image(fixed_link, link_filename)
-                if success then
-                    log_message(output_buffer, " - Saved: " .. link_filename)
-                else
-                    log_message(output_buffer, " - Failed to download: " .. fixed_link)
-                end
-            end
-
-            png_list = png_list .. " " .. link_filename
-            link_count = link_count + 1
-        end
-    end
-    log_message(output_buffer, "")
-
-    -- Convert chapter images to PDF
-    local pdf_filename = base_dir .. "/chapter_" .. chapter_number .. ".pdf"
     if file_exists(pdf_filename) then
         log_message(output_buffer, " - Exists: " .. pdf_filename)
     else
-        if pdf_convert(png_list, pdf_filename) then
-            log_message(output_buffer, " - Converted: " .. pdf_filename)
-        else
-            log_message(output_buffer, " - Convert Failed: " .. pdf_filename)
-        end
-    end
+        create_directory(chapter_dir)
 
-    log_message(output_buffer, "")
-    chapter_count = chapter_count + 1
-    pdf_list = pdf_list .. " " .. pdf_filename
+        -- Store chapter details
+        log_message(output_buffer, "Chapter " .. chapter_number .. ":")
+        log_message(output_buffer, "Title: " .. chapter.title)
+        log_message(output_buffer, "Volume: " .. chapter.volume)
+        log_message(output_buffer, "Last Updated: " .. os.date("%Y-%m-%d %H:%M:%S", tonumber(chapter.last_updated)))
+        log_message(output_buffer, "Groups:")
+
+        local link_count = 1
+        local png_list = ""
+
+        -- Add cover image to first chapter
+        if chapter_number == "1" then
+            png_list = cover_filename
+        end
+
+        -- Process each image link in the chapter
+        for group, links in pairs(chapter.groups) do
+            for _, link in ipairs(links) do
+                local fixed_link = convert_link(link)
+                local link_filename = chapter_dir .. "/link_" .. link_count .. ".png"
+
+                if file_exists(link_filename) then
+                    log_message(output_buffer, " - Exists: " .. link_filename)
+                else
+                    local success = download_image(fixed_link, link_filename)
+                    if success then
+                        log_message(output_buffer, " - Saved: " .. link_filename)
+                    else
+                        log_message(output_buffer, " - Failed to download: " .. fixed_link)
+                    end
+                end
+
+                png_list = png_list .. " " .. link_filename
+                link_count = link_count + 1
+            end
+        end
+
+        log_message(output_buffer, "")
+
+        -- Convert chapter images to PDF
+        if file_exists(pdf_filename) then
+            log_message(output_buffer, " - Exists: " .. pdf_filename)
+        else
+            if pdf_convert(png_list, pdf_filename) then
+                log_message(output_buffer, " - Converted: " .. pdf_filename)
+                if is_clean then
+                    remove_directory(chapter_dir)
+                end
+            else
+                log_message(output_buffer, " - Convert Failed: " .. pdf_filename)
+            end
+        end
+
+        log_message(output_buffer, "")
+        chapter_count = chapter_count + 1
+        pdf_list = pdf_list .. " " .. pdf_filename
+    end
 end
 
 -- Merge all chapter PDFs into a single manga PDF
 local manga_filename = "manga.pdf"
-if file_exists(manga_filename) then
-    log_message(output_buffer, " - Exists: " .. manga_filename)
+
+if not is_manga then
+    log_message(output_buffer, " - Skipping: " .. manga_filename)
 else
-    if pdf_convert(pdf_list, manga_filename) then
-        log_message(output_buffer, " - Converted: " .. manga_filename)
+    if file_exists(manga_filename) then
+        log_message(output_buffer, " - Exists: " .. manga_filename)
     else
-        log_message(output_buffer, " - Convert Failed: " .. manga_filename)
+        if pdf_convert(pdf_list, manga_filename) then
+            log_message(output_buffer, " - Converted: " .. manga_filename)
+        else
+            log_message(output_buffer, " - Convert Failed: " .. manga_filename)
+        end
     end
 end
+
 log_message(output_buffer, "")
 
 -- Save the output log to a file

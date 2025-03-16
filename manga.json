@@ -6,7 +6,7 @@
   "cover": "https://drive.google.com/uc?id=#################################",
   "chapters": {
     "1": {
-      "title": "My Manga Title 1",
+      "title": "My Manga Title 1: Google Drive style links",
       "volume": "1",
       "last_updated": "1622730263",
       "groups": {
@@ -17,13 +17,13 @@
       }
     },
     "2": {
-      "title": "My Manga Title 2",
+      "title": "My Manga Title 2: Reddit style links",
       "volume": "2",
       "last_updated": "1622730264",
       "groups": {
         "jazz": [
-          "https://drive.google.com/uc?export=view&id=#################################",
-          "https://drive.google.com/uc?export=view&id=#################################"
+          "https://i.redd.it/#############.png",
+          "https://i.redd.it/#############.png"
         ]
       }
     }

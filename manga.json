@@ -1,0 +1,31 @@
+{
+  "title": "My Manga",
+  "description": "My Manga description.",
+  "artist": "My Manga Artist",
+  "author": "My Manga Author",
+  "cover": "https://drive.google.com/uc?id=#################################",
+  "chapters": {
+    "1": {
+      "title": "My Manga Title 1",
+      "volume": "1",
+      "last_updated": "1622730263",
+      "groups": {
+        "jazz": [
+          "https://drive.google.com/uc?export=view&id=#################################",
+          "https://drive.google.com/uc?export=view&id=#################################"
+        ]
+      }
+    },
+    "2": {
+      "title": "My Manga Title 2",
+      "volume": "2",
+      "last_updated": "1622730264",
+      "groups": {
+        "jazz": [
+          "https://drive.google.com/uc?export=view&id=#################################",
+          "https://drive.google.com/uc?export=view&id=#################################"
+        ]
+      }
+    }
+  }
+}

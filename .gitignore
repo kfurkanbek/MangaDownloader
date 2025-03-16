@@ -1,3 +1,13 @@
+# Data folders
+data/
+
+# Used Libraries
+dkjson.lua
+
+# Exported Results
+manga.pdf
+result.txt
+
 # Compiled Lua sources
 luac.out
 
